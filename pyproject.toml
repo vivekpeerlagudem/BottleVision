@@ -1,0 +1,30 @@
+# Project metadata and packaging configuration.
+# This makes `pip install -e .` work, so tests and scripts import the
+# package the same way a real user would.
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bottlevision"
+version = "0.1.0"
+description = "Real-time bottle detection from a webcam (learning prototype)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "ultralytics>=8.3.0",
+    "opencv-python>=4.9.0",
+    "numpy>=1.26.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+# Tell setuptools the package lives under src/.
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

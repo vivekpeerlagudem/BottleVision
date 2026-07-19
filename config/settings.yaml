@@ -1,0 +1,27 @@
+# BottleVision configuration
+# ---------------------------
+# All tunable values live here so they can be changed WITHOUT editing Python.
+# These are placeholders for Milestone M0; later milestones will read them.
+
+camera:
+  # Which webcam to open. 0 is usually the built-in laptop camera.
+  index: 0
+  # Desired frame size (the camera may pick the nearest supported size).
+  width: 640
+  height: 480
+
+detector:
+  # Pre-trained YOLO model to load. A small COCO model already knows "bottle".
+  model: "yolov8n.pt"
+  # Minimum confidence (0.0-1.0) a detection must have to be kept.
+  confidence_threshold: 0.5
+
+filter:
+  # The single class we care about in v0.1.
+  target_class: "bottle"
+
+display:
+  # Title of the video window.
+  window_name: "BottleVision"
+  # Whether to overlay the live frames-per-second counter.
+  show_fps: true

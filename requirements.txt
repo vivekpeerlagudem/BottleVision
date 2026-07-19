@@ -1,0 +1,19 @@
+# BottleVision runtime dependencies
+# Pinned with lower bounds: install known-good-or-newer versions.
+
+# YOLO object detection framework. Pulls in PyTorch automatically,
+# so no separate torch install is required.
+ultralytics>=8.3.0
+
+# Classical computer vision: webcam capture, drawing, window display.
+opencv-python>=4.9.0
+
+# The array type that every video frame is represented as.
+numpy>=1.26.0
+
+# Reads config/settings.yaml.
+pyyaml>=6.0
+
+# --- Development-only (not needed to run the app) ---
+# Test runner. Install with: pip install -r requirements.txt
+pytest>=8.0
