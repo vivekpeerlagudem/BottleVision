@@ -5,9 +5,9 @@ single, validated, typed configuration object that the rest of the app uses.
 If a value is missing or invalid, this module fails loudly and early with a
 clear message, rather than letting a bad value cause a cryptic crash later.
 
-The ``camera``, ``display`` (M1), ``detector`` (M2) and ``filter`` (M4) sections
-are loaded here. Because the config is modelled as dataclasses, adding a section
-is a small, local change.
+The ``camera``, ``display`` (M1), ``detector`` (M2), ``filter`` (M4) and
+``tracker`` (M5) sections are loaded here. Because the config is modelled as
+dataclasses, adding a section is a small, local change.
 """
 
 from __future__ import annotations
