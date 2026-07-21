@@ -17,8 +17,37 @@ detector:
   confidence_threshold: 0.5
 
 filter:
-  # The single class we care about in v0.1.
+  # The class we care about.
   target_class: "bottle"
+  # COCO classes YOLO commonly misclassifies bottles as -- especially
+  # horizontal bottles, where the wide-short aspect ratio breaks the model's
+  # "tall upright" prior for 'bottle'. Detections in these classes are ACCEPTED
+  # and RELABELLED as the target, so a bottle briefly reported as 'vase' still
+  # keeps its identity.
+  # Do NOT add promiscuous classes such as 'cup', 'person', or 'chair': in
+  # normal scenes those match many objects that are not bottles.
+  equivalent_classes: ["vase", "wine glass"]
+  # Class-specific confidence floor for bottle-equivalent classes only. YOLO's
+  # probability mass splits between 'bottle' and 'vase' for horizontal bottles,
+  # leaving neither class above the standard 0.50 threshold. Everything else
+  # still needs to exceed detector.confidence_threshold (0.50).
+  bottle_confidence_threshold: 0.30
+
+tracker:
+  # Stage 1 -- minimum Intersection-over-Union between a track's PREDICTED box
+  # and a new detection. Higher = stricter matching.
+  iou_threshold: 0.2
+  # Stage 2 fallback -- when boxes no longer overlap at all (IoU is exactly 0),
+  # match by centre distance instead. This is how far a centre may travel in one
+  # frame, expressed as a multiple of the object's average side length.
+  # 1.2 tolerates fast hand movement at low frame rates.
+  max_center_distance_factor: 1.2
+  # How quickly the velocity estimate adapts to new motion.
+  # 0.0 = never adapt, 1.0 = jump to the latest observation each frame.
+  velocity_smoothing: 0.5
+  # How many consecutive frames a track may go unseen before its ID is retired.
+  # Larger values survive longer occlusions but risk reusing a stale identity.
+  max_lost_frames: 30
 
 display:
   # Title of the video window.

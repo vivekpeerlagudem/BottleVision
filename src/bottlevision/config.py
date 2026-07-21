@@ -55,9 +55,28 @@ class DetectorConfig:
 
 @dataclass(frozen=True)
 class FilterConfig:
-    """Settings for post-processing (which class of object to keep)."""
+    """Settings for post-processing (which class of object to keep).
+
+    ``equivalent_classes`` lists COCO labels that should be treated as the
+    target class. They exist because pretrained YOLO frequently misclassifies
+    bottles -- particularly horizontal ones -- as ``vase`` or ``wine glass``,
+    and dropping those detections was measurably responsible for track
+    expirations on the real webcam.
+    """
 
     target_class: str
+    equivalent_classes: tuple[str, ...] = ()
+    bottle_confidence_threshold: float = 0.30
+
+
+@dataclass(frozen=True)
+class TrackerConfig:
+    """Settings for multi-object tracking."""
+
+    iou_threshold: float
+    max_center_distance_factor: float
+    velocity_smoothing: float
+    max_lost_frames: int
 
 
 @dataclass(frozen=True)
@@ -68,6 +87,7 @@ class Config:
     display: DisplayConfig
     detector: DetectorConfig
     filter: FilterConfig
+    tracker: TrackerConfig
 
 
 def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Config:
@@ -104,6 +124,7 @@ def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Config:
         display=_parse_display(_section(raw, "display")),
         detector=_parse_detector(_section(raw, "detector")),
         filter=_parse_filter(_section(raw, "filter")),
+        tracker=_parse_tracker(_section(raw, "tracker")),
     )
 
 
@@ -189,4 +210,90 @@ def _parse_filter(section: dict[str, Any]) -> FilterConfig:
     target_class = _require(section, "target_class", str, "filter")
     if not target_class.strip():
         raise ConfigError("'filter.target_class' must not be empty.")
-    return FilterConfig(target_class=target_class)
+
+    raw_equivalents = section.get("equivalent_classes", [])
+    if not isinstance(raw_equivalents, list):
+        raise ConfigError(
+            "'filter.equivalent_classes' must be a list, got "
+            f"{type(raw_equivalents).__name__}."
+        )
+    equivalents: list[str] = []
+    for entry in raw_equivalents:
+        if not isinstance(entry, str) or not entry.strip():
+            raise ConfigError(
+                "'filter.equivalent_classes' must contain only non-empty "
+                f"strings, got {entry!r}."
+            )
+        equivalents.append(entry)
+    # Class-specific confidence floor for bottle-equivalent detections.
+    # Defaults to 0.30 to catch horizontal bottles that split probability mass
+    # between 'bottle' and 'vase'. Everything else still needs the standard
+    # detector.confidence_threshold.
+    if "bottle_confidence_threshold" in section:
+        raw = section["bottle_confidence_threshold"]
+        if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+            raise ConfigError(
+                "'filter.bottle_confidence_threshold' must be a number, "
+                f"got {type(raw).__name__}."
+            )
+        bottle_conf = float(raw)
+        if not 0.0 <= bottle_conf <= 1.0:
+            raise ConfigError(
+                "'filter.bottle_confidence_threshold' must be between 0 and 1, "
+                f"got {bottle_conf}."
+            )
+    else:
+        bottle_conf = 0.30
+
+    return FilterConfig(
+        target_class=target_class,
+        equivalent_classes=tuple(equivalents),
+        bottle_confidence_threshold=bottle_conf,
+    )
+
+
+def _number(section: dict[str, Any], key: str, section_name: str) -> float:
+    """Fetch a required numeric value (int or float), rejecting booleans."""
+    if key not in section:
+        raise ConfigError(f"Missing '{key}' in '{section_name}' section.")
+    value = section[key]
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ConfigError(
+            f"'{section_name}.{key}' must be a number, got {type(value).__name__}."
+        )
+    return float(value)
+
+
+def _parse_tracker(section: dict[str, Any]) -> TrackerConfig:
+    """Validate and build the tracker configuration."""
+    iou = _number(section, "iou_threshold", "tracker")
+    if not 0.0 <= iou <= 1.0:
+        raise ConfigError(
+            f"'tracker.iou_threshold' must be between 0 and 1, got {iou}."
+        )
+
+    distance_factor = _number(section, "max_center_distance_factor", "tracker")
+    if distance_factor < 0.0:
+        raise ConfigError(
+            "'tracker.max_center_distance_factor' must be >= 0, "
+            f"got {distance_factor}."
+        )
+
+    smoothing = _number(section, "velocity_smoothing", "tracker")
+    if not 0.0 <= smoothing <= 1.0:
+        raise ConfigError(
+            f"'tracker.velocity_smoothing' must be between 0 and 1, got {smoothing}."
+        )
+
+    max_lost_frames = _require(section, "max_lost_frames", int, "tracker")
+    if max_lost_frames < 0:
+        raise ConfigError(
+            f"'tracker.max_lost_frames' must be >= 0, got {max_lost_frames}."
+        )
+
+    return TrackerConfig(
+        iou_threshold=iou,
+        max_center_distance_factor=distance_factor,
+        velocity_smoothing=smoothing,
+        max_lost_frames=max_lost_frames,
+    )

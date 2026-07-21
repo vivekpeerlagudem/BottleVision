@@ -1,10 +1,15 @@
-"""The detection data structure -- the "clean seam" of the pipeline.
+"""The pipeline's data contracts -- the "clean seam".
 
-Responsibility: define the single, framework-agnostic shape that describes one
-detected object. The detector converts YOLO's raw output into these objects, and
-every downstream station (post-processing, annotation) consumes them. Because
-this type mentions nothing about YOLO or OpenCV, the detector could be swapped
-for a different model without touching the rest of the app.
+Responsibility: define the framework-agnostic shapes that flow between stations:
+
+* :class:`Detection` -- one object seen in ONE frame (no identity).
+* :class:`Track`     -- a detection that has been given a persistent identity
+  across frames.
+
+The detector converts YOLO's raw output into ``Detection`` objects; the tracker
+turns those into ``Track`` objects. Because neither type mentions YOLO or
+OpenCV, any station can be swapped without touching the rest of the app -- the
+annotator depends on the ``Track`` *type*, not on a particular tracker.
 """
 
 from __future__ import annotations
@@ -27,4 +32,22 @@ class Detection:
     bbox: tuple[int, int, int, int]
     confidence: float
     class_id: int
+    class_name: str
+
+
+@dataclass(frozen=True)
+class Track:
+    """A detected object carrying a persistent identity across frames.
+
+    Attributes:
+        track_id: Stable integer identity. The same physical bottle keeps the
+            same ``track_id`` for as long as the tracker can follow it.
+        bbox: Bounding box as ``(x1, y1, x2, y2)`` pixel coordinates.
+        confidence: Confidence of the detection that updated this track.
+        class_name: Human-readable class label (e.g. ``"bottle"``).
+    """
+
+    track_id: int
+    bbox: tuple[int, int, int, int]
+    confidence: float
     class_name: str

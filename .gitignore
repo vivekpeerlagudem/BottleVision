@@ -32,3 +32,7 @@ Thumbs.db
 
 # --- Generated annotated outputs (e.g. images/bottle_1_detected.jpeg) ---
 *_detected.*
+
+# --- Diagnostic artefacts ---
+*.log
+diagnostics/
